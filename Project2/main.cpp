@@ -50,6 +50,7 @@ std::vector<VkDynamicState> dynamicStates = {
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 uint32_t currentFrame = 0;
+bool framebufferResized = false;
 
 GLFWwindow* window = nullptr;
 VkInstance instance;
@@ -87,6 +88,7 @@ VkPresentModeKHR choosePresentMode(const std::vector<VkPresentModeKHR>& availabl
 VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 void createLogicalDevice();
 void createSwapChain();
+void recreateSwapchain();
 void createImageViews();
 void createRenderPass();
 void createGraphicsPipeline();
@@ -99,6 +101,7 @@ void createSurface();
 bool checkDeviceExtensionSupport(VkPhysicalDevice device);
 VkShaderModule createShaderModule(const std::vector<char>& code);
 void drawFrame();
+void cleanSwapChain();
 
 static std::vector<char> readFile(const std::string& fileName) {
     std::ifstream file(fileName, std::ios::ate | std::ios::binary);
@@ -119,6 +122,10 @@ const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 void* pUserData) {
     printf("validation layer: %s\n", pCallbackData->pMessage);
     return VK_FALSE;
+}
+
+static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
+    framebufferResized = true;
 }
 
 bool checkValidationLayerSupport() {
@@ -261,8 +268,9 @@ void createDebugMessenger() {
 void init() {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    //glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     window = glfwCreateWindow(800, 600, "Vulkan window", nullptr, nullptr);
+    glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
     createVKInstance();
     if (enableValidationLayers) {
         createDebugMessenger();
@@ -290,9 +298,15 @@ void loop() {
 
 void drawFrame() {
     vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
-    vkResetFences(device, 1, &inFlightFences[currentFrame]);
     uint32_t imageIndex;
-    vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+    auto result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+    if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+        recreateSwapchain();
+        return;
+    } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+        printf("failed to acquire swap chain image!\n");
+    }
+    vkResetFences(device, 1, &inFlightFences[currentFrame]);
     vkResetCommandBuffer(commandBuffers[currentFrame], 0);
     recordCommandBuffer(commandBuffers[currentFrame], imageIndex);
     VkSubmitInfo submitInfo{};
@@ -319,7 +333,14 @@ void drawFrame() {
     presentInfo.pSwapchains = swapChains;
     presentInfo.pImageIndices = &imageIndex;
     presentInfo.pResults = nullptr;
-    vkQueuePresentKHR(presentQueue, &presentInfo);
+    result = vkQueuePresentKHR(presentQueue, &presentInfo);
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized) {
+        framebufferResized = false;
+        recreateSwapchain();
+        return;
+    } else if (result != VK_SUCCESS ) {
+        printf("failed to acquire swap chain image!\n");
+    }
     currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
@@ -331,15 +352,7 @@ void clean() {
         vkDestroyFence(device, inFlightFences[i], nullptr);
     }
     
-    for (auto imageView : swapChainImageViews)
-    {
-        vkDestroyImageView(device, imageView, nullptr);
-    }
-
-    for (auto framebuffer : swapChainFramebuffers)
-    {
-        vkDestroyFramebuffer(device, framebuffer, nullptr);
-    }
+    cleanSwapChain();
 
     vkDestroyCommandPool(device, commandPool, nullptr);
 
@@ -349,7 +362,6 @@ void clean() {
 
     vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
     
-    vkDestroySwapchainKHR(device, swapChain, nullptr);
 
     vkDestroyDevice(device, nullptr);
 
@@ -549,6 +561,34 @@ VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) {
         return actualExtent;
     }
     
+}
+
+void recreateSwapchain() {
+    int width = 0, height = 0;
+    glfwGetFramebufferSize(window, &width, &height);
+    while(width == 0 || height == 0) {
+        glfwGetFramebufferSize(window, &width, &height);
+        glfwWaitEvents();
+    }
+    vkDeviceWaitIdle(device);
+    cleanSwapChain();
+    createSwapChain();
+    createImageViews();
+    createFramebuffers();
+}
+
+void cleanSwapChain() {
+    for (auto imageView : swapChainImageViews)
+    {
+        vkDestroyImageView(device, imageView, nullptr);
+    }
+
+    for (auto framebuffer : swapChainFramebuffers)
+    {
+        vkDestroyFramebuffer(device, framebuffer, nullptr);
+    }
+
+    vkDestroySwapchainKHR(device, swapChain, nullptr);
 }
 
 void createSwapChain() {
