@@ -1,7 +1,7 @@
-#include "app_2.h"
+#include "app_3.h"
 
 int main() {
-    app_2 app;
+    app_3 app;
     app.init();
     app.loop();
     app.clean();
