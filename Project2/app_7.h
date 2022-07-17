@@ -1,7 +1,7 @@
 #pragma once
 #include "tools.h"
 
-//#define DEBUG
+#define DEBUG
 
 // texture
 
