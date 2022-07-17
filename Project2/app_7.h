@@ -63,12 +63,15 @@ private:
     void createSwapChain();
     void recreateSwapchain();
     void createImageViews();
+    VkImageView createImageView(VkImage image, VkFormat format);
     void createRenderPass();
     void createDescriptorSetLayout();
     void createDescriptorPool();
     void createDescriptorSets();
     void createGraphicsPipeline();
     void createTextureImage();
+    void createTextureImageView();
+    void createTextureSampler();
     void createVertexBuffer();
     void createIndexBuffer();
     void createUniformBuffers();
@@ -137,5 +140,7 @@ private:
     std::vector<VkBuffer> uniformBuffers;
     std::vector<VkDeviceMemory> uniformBuffersMem;
     VkImage textureImage;
+    VkImageView textureImageView;
+    VkSampler textureSampler;
     VkDeviceMemory textureImageMem;
 };
