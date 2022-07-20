@@ -3,8 +3,8 @@
 #include <array>
 #include <unordered_map>
 
-//#define DEBUG
-// mipmaps
+#define DEBUG
+// multisampling
 
     struct Vertex {
 	 glm::vec3 pos;
@@ -54,11 +54,11 @@ namespace std {
     };
 }
 
-class app_10
+class app_11
 {
 public:
-    app_10();
-    ~app_10();
+    app_11();
+    ~app_11();
     struct QueueFamilyIndices
     {
         std::optional<uint32_t> graphicsFamily;
@@ -127,7 +127,7 @@ private:
     void createUniformBuffers();
     void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer,
     VkDeviceMemory& bufferMem);
-    void createImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
+    void createImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
     VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& bufferMem);
     VkCommandBuffer beginSingleTimeCommands();
     void endSingleeTimeCommands(VkCommandBuffer commandBuffer);
@@ -158,6 +158,9 @@ private:
     void createDepthResources();
     // mipmap
     void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t width, int32_t height, uint32_t mipLevels);
+    // msaa
+    VkSampleCountFlagBits getMaxUsableSampleCount();
+    void createMsaaResource();
 
     uint32_t currentFrame = 0;
 
@@ -213,4 +216,10 @@ private:
 
     // mipmap
     uint32_t mipLevels;
+
+    // msaa
+    VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
+    VkImage msaaImage;
+    VkDeviceMemory msaaImageMem;
+    VkImageView msaaImageView;
 };
