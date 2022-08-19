@@ -107,7 +107,7 @@ bool app_11::checkValidationLayerSupport() {
 
 void app_11::createVKInstance() {
     VkApplicationInfo appInfo{};
-    appInfo.apiVersion = VK_MAKE_VERSION(1, 0, 0);
+    appInfo.apiVersion = VK_MAKE_VERSION(1, 3, 0);
     appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     appInfo.pApplicationName = "Hello Triangle!";
